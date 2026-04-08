@@ -80,18 +80,20 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
   return (
     <div className="container mx-auto px-4 py-6">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-1 text-sm text-gray-500 mb-6">
-        <Link href="/" className="hover:text-brand-red">Home</Link>
-        <ChevronRight size={14} />
-        <Link href="/shop" className="hover:text-brand-red">Shop</Link>
+      <nav className="flex items-center flex-wrap gap-1.5 md:gap-2 text-xs md:text-sm text-gray-500 mb-6">
+        <Link href="/" className="hover:text-brand-red whitespace-nowrap shrink-0">Home</Link>
+        <ChevronRight size={14} className="shrink-0" />
+        <Link href="/shop" className="hover:text-brand-red whitespace-nowrap shrink-0">Shop</Link>
         {product.category && (
           <>
-            <ChevronRight size={14} />
-            <Link href={`/shop/${product.category.slug}`} className="hover:text-brand-red">{product.category.name}</Link>
+            <ChevronRight size={14} className="shrink-0" />
+            <Link href={`/shop/${product.category.slug}`} className="hover:text-brand-red whitespace-nowrap shrink-0">
+              {product.category.name}
+            </Link>
           </>
         )}
-        <ChevronRight size={14} />
-        <span className="text-gray-800 truncate">{product.name}</span>
+        <ChevronRight size={14} className="shrink-0" />
+        <span className="text-gray-800 line-clamp-1 break-all md:break-normal">{product.name}</span>
       </nav>
 
       <div className="grid md:grid-cols-2 gap-8">
@@ -226,8 +228,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
             </Button>
             <Button
               variant="outline"
-              size="icon"
-              className="h-12 w-12"
+              size="icon-lg"
+              className="shrink-0"
               onClick={() => isWished ? removeItem(product._id) : addItem({
                 _id: product._id, name: product.name, slug: product.slug,
                 price: product.price, discountPrice: product.discountPrice, images: product.images,

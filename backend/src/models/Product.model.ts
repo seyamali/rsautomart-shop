@@ -107,7 +107,8 @@ productSchema.pre('save', function () {
   }
 });
 
-productSchema.index({ name: 'text', tags: 'text', sku: 'text' });
+productSchema.index({ name: 'text', tags: 'text', sku: 'text', description: 'text' });
+
 productSchema.index({ slug: 1 });
 productSchema.index({ category: 1 });
 productSchema.index({ price: 1 });

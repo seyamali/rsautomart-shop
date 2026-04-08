@@ -26,12 +26,14 @@ export const initPayment = async (req: Request, res: Response): Promise<void> =>
       product_category: 'General',
     });
 
+    console.log('[SSLCommerz] Result:', JSON.stringify(result));
     if (result?.GatewayPageURL) {
       res.json({ url: result.GatewayPageURL });
     } else {
-      res.status(500).json({ message: 'Payment gateway initialization failed.' });
+      res.status(500).json({ message: result?.failedreason || result?.status || 'Payment gateway initialization failed.' });
     }
   } catch (error: any) {
+    console.error('[SSLCommerz] Exception:', error.message);
     res.status(500).json({ message: error.message });
   }
 };
@@ -39,19 +41,18 @@ export const initPayment = async (req: Request, res: Response): Promise<void> =>
 export const paymentSuccess = async (req: Request, res: Response): Promise<void> => {
   try {
     const { tran_id, val_id } = req.body;
-    await Order.findByIdAndUpdate(tran_id, {
+    const order = await Order.findByIdAndUpdate(tran_id, {
       paymentStatus: 'paid',
       orderStatus: 'confirmed',
       sslTransactionId: val_id,
-    });
+    }, { new: true });
 
     // Increment coupon usage
-    const order = await Order.findById(tran_id);
     if (order?.couponCode) {
       await Coupon.findOneAndUpdate({ code: order.couponCode }, { $inc: { usedCount: 1 } });
     }
 
-    res.redirect(`${process.env.FRONTEND_URL}/order-success?orderId=${tran_id}`);
+    res.redirect(`${process.env.FRONTEND_URL}/order-success?orderId=${tran_id}${order?.orderNumber ? `&orderNumber=${encodeURIComponent(order.orderNumber)}` : ''}`);
   } catch (error: any) {
     res.redirect(`${process.env.FRONTEND_URL}/order-failed`);
   }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingBag, Ticket } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -20,24 +20,24 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
   return (
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent className="w-full sm:max-w-md flex flex-col">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <ShoppingBag size={20} />
+        <SheetHeader className="px-6 pt-10 pb-4 border-b border-gray-100">
+          <SheetTitle className="flex items-center gap-2 text-lg font-bold uppercase tracking-wider text-brand-black">
+            <ShoppingBag size={20} className="text-brand-red" />
             Cart ({items.length} items)
           </SheetTitle>
         </SheetHeader>
 
         {items.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center gap-4">
-            <ShoppingBag size={64} className="text-gray-300" />
-            <p className="text-gray-500">Your cart is empty</p>
-            <Button onClick={onClose} render={<Link href="/shop" />}>
+            <ShoppingBag size={48} className="text-gray-200" />
+            <p className="text-gray-500 font-medium text-sm">Your cart is empty</p>
+            <Button onClick={onClose} render={<Link href="/shop" />} className="bg-brand-black text-white hover:bg-brand-red mt-2">
               Continue Shopping
             </Button>
           </div>
         ) : (
           <>
-            <div className="flex-1 overflow-y-auto space-y-4 py-4">
+            <div className="flex-1 overflow-y-auto scrollbar-custom space-y-4 py-4 px-6">
               {items.map((item) => (
                 <div key={item.product._id + (item.variant || '')} className="flex gap-3">
                   <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
@@ -91,23 +91,31 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
               ))}
             </div>
 
-            <Separator />
-            <div className="py-4 space-y-3">
-              <div className="flex justify-between font-semibold text-lg">
+            <div className="py-4 space-y-3 px-6 pb-6 border-t border-gray-100 bg-gray-50/50">
+              <div className="flex justify-between font-bold text-lg text-brand-black mb-1">
                 <span>Total</span>
                 <span className="text-brand-red">{formatPrice(totalAmount)}</span>
               </div>
               <Button
-                className="w-full bg-brand-red hover:bg-brand-red-dark"
-                size="lg"
+                className="w-full bg-brand-red text-white hover:bg-brand-red-dark font-semibold py-5"
                 render={<Link href="/checkout" />}
                 onClick={onClose}
               >
                 Proceed to Checkout
               </Button>
-              <Button variant="outline" className="w-full" onClick={onClose} render={<Link href="/cart" />}>
+              <Button variant="outline" className="w-full font-semibold text-brand-black hover:bg-gray-100" onClick={onClose} render={<Link href="/cart" />}>
                 View Full Cart
               </Button>
+              <div className="text-center">
+                <Link 
+                  href="/offers" 
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-red hover:underline decoration-2 underline-offset-4"
+                  onClick={onClose}
+                >
+                  <Ticket size={14} />
+                  Check for Coupons & Offers
+                </Link>
+              </div>
             </div>
           </>
         )}

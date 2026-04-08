@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { X, Plus } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -120,20 +122,55 @@ export default function NewProductPage() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Images (up to 6)</CardTitle></CardHeader>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Images (Max 6)</CardTitle>
+              {images.length > 0 && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => setImages([])} className="text-red-500 hover:text-red-700">
+                  Clear All
+                </Button>
+              )}
+            </div>
+          </CardHeader>
           <CardContent>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(e) => setImages(Array.from(e.target.files || []).slice(0, 6))}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-brand-red-light file:text-brand-red hover:file:bg-brand-red-light"
-            />
-            {images.length > 0 && (
-              <p className="text-sm text-gray-500 mt-2">{images.length} file(s) selected</p>
-            )}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 mb-4">
+              {images.map((file, i) => (
+                <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 group">
+                  <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setImages(images.filter((_, j) => j !== i))}
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+              {images.length < 6 && (
+                <label className="flex flex-col items-center justify-center aspect-square rounded-lg border-2 border-dashed border-gray-300 hover:border-brand-red cursor-pointer transition-colors bg-gray-50">
+                  <div className="flex flex-col items-center text-gray-500">
+                    <Plus size={24} />
+                    <span className="text-xs mt-1 font-medium">Add Image</span>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      setImages((prev) => [...prev, ...files].slice(0, 6));
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+            <p className="text-[11px] text-gray-400">
+              * JPEG, PNG, or WebP. Max 6 images. First image will be the primary thumbnail.
+            </p>
           </CardContent>
         </Card>
+
 
         <Card>
           <CardHeader><CardTitle>Variants</CardTitle></CardHeader>

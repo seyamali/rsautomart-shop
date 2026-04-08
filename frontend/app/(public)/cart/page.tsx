@@ -8,18 +8,80 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/hooks/useCart';
 import { formatPrice } from '@/lib/utils';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+
+type PublicCoupon = {
+  code: string;
+  discountType: 'percent' | 'fixed';
+  discountValue: number;
+  minOrderAmount?: number;
+  maxDiscountAmount?: number;
+};
 
 export default function CartPage() {
   const { items, totalAmount, removeFromCart, updateItemQuantity, clearCart } = useCart();
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [appliedCoupon, setAppliedCoupon] = useState('');
+  const [publicCoupons, setPublicCoupons] = useState<PublicCoupon[]>([]);
 
   const shippingCost = totalAmount >= 999 ? 0 : 60;
   const grandTotal = totalAmount + shippingCost - discount;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCoupons = async () => {
+      try {
+        const { data } = await api.get('/payment/public-coupons');
+        if (cancelled) return;
+        setPublicCoupons(Array.isArray(data.coupons) ? data.coupons : []);
+      } catch {
+        if (cancelled) return;
+        setPublicCoupons([]);
+      }
+    };
+
+    void loadCoupons();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!appliedCoupon) return;
+
+    let cancelled = false;
+    const revalidateCoupon = async () => {
+      try {
+        const { data } = await api.post('/payment/validate-coupon', {
+          code: appliedCoupon,
+          orderAmount: totalAmount,
+        });
+        if (cancelled) return;
+        setDiscount(data.discount);
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('checkout-coupon', JSON.stringify({ code: appliedCoupon, discount: data.discount }));
+        }
+      } catch {
+        if (cancelled) return;
+        setDiscount(0);
+        setAppliedCoupon('');
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('checkout-coupon');
+        }
+      }
+    };
+
+    void revalidateCoupon();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [appliedCoupon, totalAmount]);
 
   const applyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -29,11 +91,39 @@ export default function CartPage() {
         orderAmount: totalAmount,
       });
       setDiscount(data.discount);
-      setAppliedCoupon(couponCode.toUpperCase());
+      const code = couponCode.toUpperCase();
+      setAppliedCoupon(code);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('checkout-coupon', JSON.stringify({ code, discount: data.discount }));
+      }
       toast.success(`Coupon applied! You save ${formatPrice(data.discount)}`);
     } catch (error: any) {
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('checkout-coupon');
+      }
+      setDiscount(0);
+      setAppliedCoupon('');
       toast.error(error.response?.data?.message || 'Invalid coupon');
     }
+  };
+
+  const typedCoupon = publicCoupons.find((coupon) => coupon.code.toLowerCase() === couponCode.trim().toLowerCase());
+  const appliedCouponDetails = publicCoupons.find((coupon) => coupon.code.toLowerCase() === appliedCoupon.toLowerCase());
+
+  const formatCouponSummary = (coupon?: PublicCoupon) => {
+    if (!coupon) return '';
+
+    const discountText =
+      coupon.discountType === 'percent'
+        ? `${coupon.discountValue}% off`
+        : `${formatPrice(coupon.discountValue)} off`;
+
+    const capText =
+      coupon.discountType === 'percent' && coupon.maxDiscountAmount && coupon.maxDiscountAmount > 0
+        ? ` up to ${formatPrice(coupon.maxDiscountAmount)}`
+        : '';
+
+    return `${discountText}${capText}`;
   };
 
   if (items.length === 0) {
@@ -112,8 +202,17 @@ export default function CartPage() {
             />
             <Button size="sm" variant="outline" onClick={applyCoupon}>Apply</Button>
           </div>
+          {typedCoupon && (
+            <p className="text-xs text-gray-500 mb-2">
+              {typedCoupon.code} gives {formatCouponSummary(typedCoupon)}
+              {typedCoupon.minOrderAmount ? ` on orders over ${formatPrice(typedCoupon.minOrderAmount)}` : ''}
+            </p>
+          )}
           {appliedCoupon && (
-            <p className="text-sm text-green-600 mb-4">Coupon &quot;{appliedCoupon}&quot; applied</p>
+            <p className="text-sm text-green-600 mb-4">
+              Coupon &quot;{appliedCoupon}&quot; applied
+              {appliedCouponDetails ? ` - ${formatCouponSummary(appliedCouponDetails)}` : ''}
+            </p>
           )}
 
           <Separator className="mb-4" />
@@ -142,9 +241,9 @@ export default function CartPage() {
             <span className="text-brand-red">{formatPrice(grandTotal)}</span>
           </div>
 
-          <Button className="w-full mt-6 bg-brand-red hover:bg-brand-red-dark" size="lg" render={<Link href="/checkout" />}>
-            Proceed to Checkout
-          </Button>
+            <Button className="w-full mt-6 bg-brand-red hover:bg-brand-red-dark" size="lg" render={<Link href="/checkout" />}>
+              Proceed to Checkout
+            </Button>
 
           {totalAmount < 999 && (
             <p className="text-xs text-center text-gray-500 mt-3">

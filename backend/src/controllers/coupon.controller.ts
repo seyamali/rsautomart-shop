@@ -1,37 +1,39 @@
 import { Request, Response } from 'express';
 import Coupon from '../models/Coupon.model';
+import { AuthRequest } from '../middleware/auth.middleware';
+import { checkCouponEligibility } from '../services/coupon.service';
 
-export const validateCoupon = async (req: Request, res: Response): Promise<void> => {
+export const validateCoupon = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { code, orderAmount } = req.body;
-    const coupon = await Coupon.findOne({ code: code.toUpperCase(), isActive: true });
+    const result = await checkCouponEligibility({
+      code,
+      orderAmount: Number(orderAmount),
+      userId: req.user?._id?.toString(),
+    });
 
-    if (!coupon) {
-      res.status(404).json({ message: 'Invalid coupon code.' });
-      return;
-    }
+    res.json({
+      coupon: result.coupon,
+      discount: result.discount,
+      perUserMaxUses: result.perUserMaxUses,
+      userUses: result.userUses,
+    });
+  } catch (error: any) {
+    const message = error.message || 'Failed to validate coupon.';
+    res.status(message.includes('Invalid coupon') ? 404 : 400).json({ message });
+  }
+};
 
-    if (coupon.expiresAt < new Date()) {
-      res.status(400).json({ message: 'Coupon has expired.' });
-      return;
-    }
+export const getPublicCoupons = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const coupons = await Coupon.find({
+      isActive: true,
+      expiresAt: { $gte: new Date() },
+    })
+      .select('code discountType discountValue minOrderAmount expiresAt maxDiscountAmount maxUses usedCount perUserMaxUses description')
+      .sort({ createdAt: -1 });
 
-    if (coupon.maxUses > 0 && coupon.usedCount >= coupon.maxUses) {
-      res.status(400).json({ message: 'Coupon usage limit reached.' });
-      return;
-    }
-
-    if (orderAmount < coupon.minOrderAmount) {
-      res.status(400).json({ message: `Minimum order amount is ৳${coupon.minOrderAmount}.` });
-      return;
-    }
-
-    const discount =
-      coupon.discountType === 'percent'
-        ? Math.round((orderAmount * coupon.discountValue) / 100)
-        : coupon.discountValue;
-
-    res.json({ coupon, discount });
+    res.json({ coupons });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

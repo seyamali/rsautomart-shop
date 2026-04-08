@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import SectionHeader from '@/components/product/SectionHeader';
 import api from '@/lib/api';
-import { dummyCategories } from '@/lib/dummyData';
+
 import { Car, Bike, Cpu, Wrench, Sparkles, Lightbulb } from 'lucide-react';
 
 const iconMap: Record<string, any> = {
@@ -25,9 +25,10 @@ export default function FeaturedCategories() {
   useEffect(() => {
     api.get('/categories')
       .then(({ data }) => setCategories(data.categories))
-      .catch(() => setCategories(dummyCategories))
+      .catch(() => setCategories([]))
       .finally(() => setLoading(false));
   }, []);
+
 
   return (
     <section className="max-w-360 mx-auto px-4 py-10">
@@ -42,7 +43,7 @@ export default function FeaturedCategories() {
                 <Skeleton className="h-3 w-16 mt-2" />
               </div>
             ))
-          : categories.map((cat) => {
+          : categories.map((cat, idx) => {
               const Icon = iconMap[cat.slug] || Car;
               return (
                 <Link
@@ -57,8 +58,10 @@ export default function FeaturedCategories() {
                         alt={cat.name}
                         width={96}
                         height={96}
+                        priority={idx < 4}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                       />
+
                     ) : (
                       <Icon size={32} className="text-gray-400 group-hover:text-brand-red transition-colors duration-300" />
                     )}

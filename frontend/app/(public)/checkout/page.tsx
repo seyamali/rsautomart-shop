@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,7 @@ export default function CheckoutPage() {
   const user = useAuthStore((s) => s.user);
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('COD');
+  const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [form, setForm] = useState({
     name: user?.name || '',
     phone: user?.phone || '',
@@ -32,6 +33,18 @@ export default function CheckoutPage() {
     division: 'Dhaka',
   });
   const [deliveryNote, setDeliveryNote] = useState('');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = sessionStorage.getItem('checkout-coupon');
+      if (stored) {
+        setCoupon(JSON.parse(stored));
+      }
+    } catch {
+      sessionStorage.removeItem('checkout-coupon');
+    }
+  }, []);
 
   if (!user) {
     return (
@@ -55,9 +68,12 @@ export default function CheckoutPage() {
     );
   }
 
-  const isDhaka = DHAKA_DISTRICTS.includes(form.district.toLowerCase());
+  const normalizedDistrict = form.district.trim().toLowerCase();
+  const normalizedDivision = form.division.trim().toLowerCase();
+  const isDhaka = normalizedDivision === 'dhaka' || DHAKA_DISTRICTS.includes(normalizedDistrict);
   const shippingCost = totalAmount >= 999 ? 0 : isDhaka ? 60 : 120;
-  const grandTotal = totalAmount + shippingCost;
+  const couponDiscount = coupon?.discount || 0;
+  const grandTotal = totalAmount + shippingCost - couponDiscount;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,6 +98,7 @@ export default function CheckoutPage() {
         paymentMethod,
         deliveryNote,
         items: orderItems,
+        couponCode: coupon?.code,
       });
 
       if (paymentMethod === 'SSLCommerz') {
@@ -92,10 +109,14 @@ export default function CheckoutPage() {
           window.location.href = paymentData.url;
           return;
         }
+        throw new Error('Payment gateway initialization failed.');
       }
 
       clearCart();
-      router.push(`/order-success?orderId=${data.order._id}`);
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('checkout-coupon');
+      }
+      router.push(`/order-success?orderId=${data.order._id}&orderNumber=${encodeURIComponent(data.order.orderNumber)}`);
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to place order');
     } finally {
@@ -206,6 +227,12 @@ export default function CheckoutPage() {
                 <span>Shipping ({isDhaka ? 'Inside Dhaka' : 'Outside Dhaka'})</span>
                 <span>{shippingCost === 0 ? 'Free' : formatPrice(shippingCost)}</span>
               </div>
+              {couponDiscount > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>Coupon Discount</span>
+                  <span>-{formatPrice(couponDiscount)}</span>
+                </div>
+              )}
             </div>
             <Separator className="my-4" />
             <div className="flex justify-between font-bold text-lg">

@@ -8,19 +8,10 @@ import SortDropdown from '@/components/product/SortDropdown';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function BestSellers() {
-  const { products, loading } = useBestSellers();
   const [sort, setSort] = useState('popular');
+  const { products, loading } = useBestSellers(sort);
 
   if (!loading && products.length === 0) return null;
-
-  const sorted = [...products].sort((a, b) => {
-    switch (sort) {
-      case 'price_asc': return (a.discountPrice || a.price) - (b.discountPrice || b.price);
-      case 'price_desc': return (b.discountPrice || b.price) - (a.discountPrice || a.price);
-      case 'newest': return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      default: return (b.totalSold || 0) - (a.totalSold || 0);
-    }
-  });
 
   return (
     <section className="py-10">
@@ -43,7 +34,7 @@ export default function BestSellers() {
                   <Skeleton className="h-4 w-1/2 mt-2" />
                 </div>
               ))
-            : sorted.slice(0, 8).map((product) => (
+            : products.slice(0, 8).map((product: any) => (
                 <ProductCard key={product._id} product={product} />
               ))}
         </div>

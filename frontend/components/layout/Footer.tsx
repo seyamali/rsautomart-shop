@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Phone, Mail, MapPin } from 'lucide-react';
+import { Phone, Mail, MapPin, Banknote } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -9,7 +9,13 @@ export default function Footer() {
       <div className="max-w-360 mx-auto px-4 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
         {/* Column 1: Brand */}
         <div>
-          <Image src="/logo-small.png" alt="RS Automart" width={160} height={50} className="h-9 w-auto mb-3 brightness-0 invert" />
+          <Image 
+            src="/logo-small.png" 
+            alt="RS Automart" 
+            width={160} 
+            height={50} 
+            className="h-9 w-auto mb-3 invert brightness-110" 
+          />
           <p className="text-sm leading-relaxed text-gray-500">
             Your one-stop destination for premium quality auto parts and accessories. We deliver reliability, performance, and value — straight to your doorstep.
           </p>
@@ -42,6 +48,7 @@ export default function Footer() {
               { href: '/profile', label: 'My Account' },
               { href: '/cart', label: 'Shopping Cart' },
               { href: '/wishlist', label: 'Wishlist' },
+              { href: '/offers', label: 'Offers & Coupons' },
               { href: '/orders', label: 'Order Tracking' },
             ].map((link) => (
               <li key={link.href}>
@@ -97,11 +104,30 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} RS AUTOMART. All rights reserved.
           </p>
           <div className="flex items-center gap-2">
-            {['bKash', 'VISA', 'Mastercard', 'COD'].map((m) => (
-              <span key={m} className="px-3 py-1.5 bg-white/10 border border-white/10 rounded text-[11px] font-bold text-gray-300 uppercase tracking-wider">
-                {m}
-              </span>
-            ))}
+            {/* bKash */}
+            <div className="px-3 py-1.5 bg-white/10 border border-white/5 rounded flex items-center justify-center select-none shadow-sm">
+              <span className="text-[#e2136e] font-extrabold text-[12px] tracking-tight">bKash</span>
+            </div>
+
+            {/* VISA */}
+            <div className="px-3 py-1.5 bg-white/10 border border-white/5 rounded flex items-center justify-center select-none shadow-sm">
+              <span className="text-blue-400 font-extrabold italic text-[13px] tracking-widest leading-none">VISA</span>
+            </div>
+
+            {/* Mastercard */}
+            <div className="px-3 py-1.5 bg-white/10 border border-white/5 rounded flex items-center justify-center gap-1.5 select-none shadow-sm">
+              <div className="relative w-6 h-3.5 flex items-center">
+                <div className="absolute left-0 w-3.5 h-3.5 rounded-full bg-[#EB001B] opacity-90 mix-blend-screen"></div>
+                <div className="absolute left-2.5 w-3.5 h-3.5 rounded-full bg-[#F79E1B] opacity-90 mix-blend-screen"></div>
+              </div>
+              <span className="text-gray-200 font-medium text-[10px] tracking-tight hidden sm:block">mastercard</span>
+            </div>
+
+            {/* COD */}
+            <div className="px-3 py-1.5 bg-white/10 border border-white/5 rounded flex items-center justify-center gap-1.5 select-none shadow-sm">
+              <Banknote size={14} className="text-green-400" />
+              <span className="text-green-400 font-bold text-[11px] uppercase tracking-wider">COD</span>
+            </div>
           </div>
         </div>
       </div>

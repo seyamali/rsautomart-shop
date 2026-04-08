@@ -13,20 +13,32 @@ import api from '@/lib/api';
 
 export default function CategoryPage({ params }: { params: Promise<{ category: string }> }) {
   const { category } = use(params);
+  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [categoryData, setCategoryData] = useState<any>(null);
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState('popular');
 
   useEffect(() => {
     api.get(`/categories/${category}`)
-      .then(({ data }) => setCategoryData(data.category))
-      .catch(() => {});
+      .then(({ data }) => {
+        setCategoryData(data.category);
+        setCategoryId(data.category?._id || 'not-found');
+      })
+      .catch(() => setCategoryId('not-found'));
   }, [category]);
 
   const filters: Record<string, string> = { sort, page: String(page) };
-  if (categoryData) filters.category = categoryData._id;
+  if (categoryId && categoryId !== 'not-found') filters.category = categoryId;
+  else if (categoryId === 'not-found') filters.category = 'invalid-id-to-force-empty';
 
-  const { products, pagination, loading } = useProducts(filters);
+  // Only fetch products if categoryId is resolved (so we don't fetch all products on initial render)
+  // useProducts automatically fetches, so we pass a dummy 'prevent_fetch' if needed, OR we can just add that feature.
+  // Actually, 'invalid-id-to-force-empty' will return 0 products, which is fine! 
+  // Wait, if categoryId is null, we can pass a dummy params that we modify useProducts to ignore. 
+  // Let's just use a special key '_skip: "true"'.
+  
+  const finalFilters = categoryId === null ? { _skip: 'true' } : filters;
+  const { products, pagination, loading } = useProducts(finalFilters);
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -45,8 +57,8 @@ export default function CategoryPage({ params }: { params: Promise<{ category: s
                 <SlidersHorizontal size={16} />
                 <span className="uppercase text-xs font-bold tracking-wider">Filter</span>
               </SheetTrigger>
-              <SheetContent side="left" className="w-80">
-                <div className="pt-6">
+              <SheetContent side="left" className="w-[85vw] sm:w-[400px] flex flex-col p-0">
+                <div className="flex-1 overflow-hidden">
                   <ProductFilter
                     filters={{ ...filters, sort }}
                     onFilterChange={(f) => { setSort(f.sort || 'popular'); setPage(1); }}

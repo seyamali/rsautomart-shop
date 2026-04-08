@@ -134,3 +134,21 @@
     @apply font-sans;
   }
 }
+
+/* Beautiful Elegant Scrollbars */
+@layer utilities {
+  .scrollbar-custom::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-custom::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-custom::-webkit-scrollbar-thumb {
+    background: #e5e7eb; /* gray-200 */
+    border-radius: 10px;
+  }
+  .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+    background: #cc0000; /* brand-red */
+  }
+}

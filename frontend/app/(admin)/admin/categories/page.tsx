@@ -16,10 +16,12 @@ export default function AdminCategoriesPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [image, setImage] = useState<File | null>(null);
+  const [existingImage, setExistingImage] = useState<string | null>(null);
 
   const fetchCategories = () => {
-    api.get('/categories').then(({ data }) => setCategories(data.categories)).catch(() => {});
+    api.get('/categories/admin').then(({ data }) => setCategories(data.categories)).catch(() => {});
   };
+
 
   useEffect(() => { fetchCategories(); }, []);
 
@@ -42,6 +44,7 @@ export default function AdminCategoriesPage() {
       setForm({ name: '', description: '', parent: '' });
       setEditId(null);
       setImage(null);
+      setExistingImage(null);
       setOpen(false);
       fetchCategories();
     } catch (error: any) {
@@ -63,14 +66,17 @@ export default function AdminCategoriesPage() {
   const startEdit = (cat: any) => {
     setForm({ name: cat.name, description: cat.description || '', parent: cat.parent?._id || '' });
     setEditId(cat._id);
+    setExistingImage(cat.image?.url || null);
+    setImage(null);
     setOpen(true);
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
+    <div className="flex flex-col">
+      {/* Sticky Header - No gaps */}
+      <div className="sticky top-0 z-20 bg-gray-50 px-6 py-6 border-b border-gray-100 shadow-sm flex items-center justify-between">
         <h1 className="text-2xl font-bold">Categories ({categories.length})</h1>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditId(null); setForm({ name: '', description: '', parent: '' }); } }}>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditId(null); setForm({ name: '', description: '', parent: '' }); setImage(null); setExistingImage(null); } }}>
           <DialogTrigger render={<Button className="bg-brand-red hover:bg-brand-red-dark" />}>
             <Plus size={16} className="mr-1" /> Add Category
           </DialogTrigger>
@@ -96,8 +102,19 @@ export default function AdminCategoriesPage() {
               </div>
               <div>
                 <Label>Image</Label>
-                <input type="file" accept="image/*" onChange={(e) => setImage(e.target.files?.[0] || null)}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-brand-red-light file:text-brand-red" />
+                <div className="flex items-center gap-4 mt-2">
+                  {(image || existingImage) && (
+                    <div className="w-16 h-16 rounded overflow-hidden border border-gray-200 flex-shrink-0">
+                      <img
+                        src={image ? URL.createObjectURL(image) : existingImage!}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <input type="file" accept="image/*" onChange={(e) => setImage(e.target.files?.[0] || null)}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-brand-red-light file:text-brand-red" />
+                </div>
               </div>
               <Button type="submit" className="w-full bg-brand-red hover:bg-brand-red-dark">
                 {editId ? 'Update' : 'Create'}
@@ -107,7 +124,8 @@ export default function AdminCategoriesPage() {
         </Dialog>
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="flex-1 px-6 py-6 mt-2 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
         {categories.map((cat) => (
           <Card key={cat._id}>
             <CardContent className="p-4">
@@ -127,5 +145,6 @@ export default function AdminCategoriesPage() {
         ))}
       </div>
     </div>
+
   );
 }

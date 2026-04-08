@@ -20,10 +20,12 @@ export default function AdminSidebar() {
   return (
     <aside className="w-64 bg-brand-black min-h-screen text-white flex-shrink-0 hidden lg:block">
       <div className="p-6">
-        <Link href="/">
-          <img src="/logo-small.png" alt="RS Automart" className="h-8 brightness-0 invert" />
+        <Link href="/" className="flex items-center gap-3">
+          <img src="/logo-small.png" alt="RS Automart" className="h-8 invert brightness-110" />
         </Link>
-        <p className="text-xs text-gray-400 mt-2">Admin Panel</p>
+        <p className="text-[10px] uppercase font-black text-brand-red mt-2 tracking-widest border border-brand-red/30 inline-block px-2 py-0.5 rounded">
+          Admin Control
+        </p>
       </div>
       <nav className="mt-2 px-3 space-y-1">
         {menuItems.map(({ href, icon: Icon, label }) => (

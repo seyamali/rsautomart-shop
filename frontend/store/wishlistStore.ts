@@ -16,6 +16,7 @@ interface WishlistStore {
   removeItem: (id: string) => void;
   isInWishlist: (id: string) => boolean;
   clearWishlist: () => void;
+  setWishlist: (items: WishlistItem[]) => void;
 }
 
 export const useWishlistStore = create<WishlistStore>()(
@@ -31,6 +32,7 @@ export const useWishlistStore = create<WishlistStore>()(
         set((state) => ({ items: state.items.filter((i) => i._id !== id) })),
       isInWishlist: (id) => get().items.some((i) => i._id === id),
       clearWishlist: () => set({ items: [] }),
+      setWishlist: (items) => set({ items }),
     }),
     { name: 'wishlist-storage' }
   )

@@ -12,6 +12,8 @@ export interface User {
 interface AuthStore {
   user: User | null;
   token: string | null;
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
   setAuth: (user: User, token: string) => void;
   logout: () => void;
   isLoggedIn: () => boolean;
@@ -23,11 +25,19 @@ export const useAuthStore = create<AuthStore>()(
     (set, get) => ({
       user: null,
       token: null,
+      _hasHydrated: false,
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
       setAuth: (user, token) => set({ user, token }),
       logout: () => set({ user: null, token: null }),
       isLoggedIn: () => !!get().user,
       isAdmin: () => get().user?.role === 'admin',
     }),
-    { name: 'auth-storage' }
+    {
+      name: 'auth-storage',
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
+    }
   )
 );
+

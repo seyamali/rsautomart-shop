@@ -2,75 +2,127 @@ import { Request, Response } from 'express';
 import Order from '../models/Order.model';
 import Cart from '../models/Cart.model';
 import Product from '../models/Product.model';
+import Coupon from '../models/Coupon.model';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { sendOrderConfirmation, sendNewOrderNotification } from '../services/email.service';
+import { checkCouponEligibility } from '../services/coupon.service';
 
 const DHAKA_DISTRICTS = ['dhaka', 'gazipur', 'narayanganj', 'manikganj', 'munshiganj', 'narsingdi'];
 const FREE_SHIPPING_MIN = 999;
+const isInsideDhaka = (shippingAddress: { district?: string; division?: string }) => {
+  const district = shippingAddress.district?.trim().toLowerCase();
+  const division = shippingAddress.division?.trim().toLowerCase();
+  return division === 'dhaka' || (district ? DHAKA_DISTRICTS.includes(district) : false);
+};
 
 export const createOrder = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { shippingAddress, paymentMethod, couponCode, deliveryNote, items: directItems } = req.body;
 
-    // Get items from cart or direct
-    let orderItems: any[] = [];
+    // 1. Gather Items & Secure Prices from Database
+    let validatedItems: any[] = [];
     if (directItems && directItems.length > 0) {
-      orderItems = directItems;
+      for (const item of directItems) {
+        const product = await Product.findById(item.product);
+        if (!product || !product.isActive) {
+          res.status(404).json({ message: `Product ${item.name || 'Unknown'} not found.` });
+          return;
+        }
+        if (product.stock.quantity < item.quantity) {
+          res.status(400).json({ message: `Insufficient stock for ${product.name}.` });
+          return;
+        }
+        validatedItems.push({
+          product: product._id,
+          name: product.name,
+          image: product.images?.[0]?.url || '',
+          price: product.price, // SOURCE OF TRUTH
+          quantity: item.quantity,
+          variant: item.variant,
+        });
+      }
     } else {
       const cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
       if (!cart || cart.items.length === 0) {
         res.status(400).json({ message: 'Cart is empty.' });
         return;
       }
-      orderItems = cart.items.map((item: any) => ({
-        product: item.product._id,
-        name: item.product.name,
-        image: item.product.images?.[0]?.url || '',
-        price: item.price,
-        quantity: item.quantity,
-        variant: item.variant,
-      }));
+      for (const item of cart.items) {
+        const product = item.product as any;
+        if (!product || !product.isActive) continue;
+        if (product.stock.quantity < item.quantity) {
+          res.status(400).json({ message: `Insufficient stock for ${product.name}.` });
+          return;
+        }
+        validatedItems.push({
+          product: product._id,
+          name: product.name,
+          image: product.images?.[0]?.url || '',
+          price: product.price, // SOURCE OF TRUTH
+          quantity: item.quantity,
+          variant: item.variant,
+        });
+      }
     }
 
-    const subtotal = orderItems.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);
+    if (validatedItems.length === 0) {
+      res.status(400).json({ message: 'No valid items in order.' });
+      return;
+    }
 
-    // Calculate shipping
-    const district = shippingAddress.district?.toLowerCase();
-    let shippingCost = DHAKA_DISTRICTS.includes(district) ? 60 : 120;
+    // 2. Calculate Secure Totals
+    const subtotal = validatedItems.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);
+    let shippingCost = isInsideDhaka(shippingAddress) ? 60 : 120;
     if (subtotal >= FREE_SHIPPING_MIN) shippingCost = 0;
 
-    const discount = req.body.discount || 0;
+    let discount = 0;
+    const normalizedCouponCode = typeof couponCode === 'string' ? couponCode.trim().toUpperCase() : '';
+    if (normalizedCouponCode) {
+      const result = await checkCouponEligibility({
+        code: normalizedCouponCode,
+        orderAmount: subtotal,
+        userId: req.user._id.toString(),
+      });
+      discount = result.discount;
+    }
     const totalAmount = subtotal + shippingCost - discount;
 
+    // 3. Create the Order
     const order = await Order.create({
       user: req.user._id,
-      items: orderItems,
+      items: validatedItems,
       shippingAddress,
       paymentMethod: paymentMethod || 'COD',
-      paymentStatus: paymentMethod === 'COD' ? 'pending' : 'pending',
+      paymentStatus: 'pending',
       subtotal,
       shippingCost,
       discount,
       totalAmount,
-      couponCode,
+      couponCode: normalizedCouponCode || undefined,
       deliveryNote,
     });
 
-    // Reduce stock
-    for (const item of orderItems) {
+    // 4. Reduce Stock
+    for (const item of validatedItems) {
       await Product.findByIdAndUpdate(item.product, {
         $inc: { 'stock.quantity': -item.quantity, totalSold: item.quantity },
       });
     }
 
-    // Clear cart
-    await Cart.findOneAndUpdate({ user: req.user._id }, { items: [], totalAmount: 0 });
+    // 5. Cleanup
+    if (!directItems || directItems.length === 0) {
+      await Cart.findOneAndUpdate({ user: req.user._id }, { items: [], totalAmount: 0 });
+    }
 
-    // Send emails (fire and forget)
+    if (normalizedCouponCode && (paymentMethod === 'COD' || paymentMethod === 'bKash')) {
+      await Coupon.findOneAndUpdate({ code: normalizedCouponCode }, { $inc: { usedCount: 1 } });
+    }
+
+    // 6. Notifications
     try {
-      await sendOrderConfirmation(req.user.email, order.orderNumber, totalAmount, orderItems);
+      await sendOrderConfirmation(req.user.email, order.orderNumber, totalAmount, validatedItems);
       await sendNewOrderNotification(order.orderNumber, totalAmount, req.user.name);
-    } catch {}
+    } catch (e) { console.error('Email error:', e); }
 
     res.status(201).json({ order });
   } catch (error: any) {
@@ -89,14 +141,15 @@ export const getMyOrders = async (req: AuthRequest, res: Response): Promise<void
 
 export const getOrderById = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const order = await Order.findById(req.params.id).populate('user', 'name email phone');
+    const order = await Order.findById(req.params.id)
+      .populate('user', 'name email phone')
+      .populate('items.product', 'name sku images');
 
     if (!order) {
       res.status(404).json({ message: 'Order not found.' });
       return;
     }
 
-    // Customers can only see their own orders
     if (req.user.role !== 'admin' && order.user._id?.toString() !== req.user._id.toString()) {
       res.status(403).json({ message: 'Access denied.' });
       return;
@@ -108,21 +161,47 @@ export const getOrderById = async (req: AuthRequest, res: Response): Promise<voi
   }
 };
 
-// Admin
 export const getAllOrders = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { status, page = '1', limit = '20' } = req.query;
+    const { status, page = '1', limit = '20', search } = req.query;
     const filter: any = {};
     if (status) filter.orderStatus = status;
 
-    const pageNum = parseInt(page as string);
-    const limitNum = parseInt(limit as string);
-    const skip = (pageNum - 1) * limitNum;
+    const pageNum  = Math.max(1, parseInt(page as string));
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string)));
+    const skip     = (pageNum - 1) * limitNum;
 
-    const [orders, total] = await Promise.all([
-      Order.find(filter).populate('user', 'name email phone').sort({ createdAt: -1 }).skip(skip).limit(limitNum),
-      Order.countDocuments(filter),
-    ]);
+    let orderQuery = Order.find(filter)
+      .populate('user', 'name email phone')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean();
+
+    let countQuery = Order.countDocuments(filter);
+
+    if (search) {
+      const raw = await Order.find(filter)
+        .populate('user', 'name email phone')
+        .sort({ createdAt: -1 })
+        .lean();
+
+      const term = (search as string).toLowerCase();
+      const filtered = raw.filter((o: any) =>
+        o.orderNumber?.toLowerCase().includes(term) ||
+        o.user?.name?.toLowerCase().includes(term) ||
+        o.user?.phone?.toLowerCase().includes(term)
+      );
+
+      const paginated = filtered.slice(skip, skip + limitNum);
+      res.json({
+        orders: paginated,
+        pagination: { page: pageNum, limit: limitNum, total: filtered.length, pages: Math.ceil(filtered.length / limitNum) },
+      });
+      return;
+    }
+
+    const [orders, total] = await Promise.all([orderQuery, countQuery]);
 
     res.json({
       orders,
@@ -137,11 +216,19 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
   try {
     const { orderStatus, paymentStatus, trackingId } = req.body;
     const update: any = {};
-    if (orderStatus) update.orderStatus = orderStatus;
-    if (paymentStatus) update.paymentStatus = paymentStatus;
-    if (trackingId) update.trackingId = trackingId;
+    if (orderStatus !== undefined)   update.orderStatus   = orderStatus;
+    if (paymentStatus !== undefined) update.paymentStatus = paymentStatus;
+    if (trackingId !== undefined)    update.trackingId    = trackingId;
 
-    const order = await Order.findByIdAndUpdate(req.params.id, update, { new: true });
+    if (Object.keys(update).length === 0) {
+      res.status(400).json({ message: 'No update fields provided.' });
+      return;
+    }
+
+    const order = await Order.findByIdAndUpdate(req.params.id, { $set: update }, { new: true })
+      .populate('user', 'name email phone')
+      .populate('items.product', 'name sku');
+
     if (!order) {
       res.status(404).json({ message: 'Order not found.' });
       return;

@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { X } from 'lucide-react';
 import api from '@/lib/api';
-import { dummyCategories } from '@/lib/dummyData';
+
 
 interface ProductFilterProps {
   filters: Record<string, string>;
@@ -20,8 +20,9 @@ export default function ProductFilter({ filters, onFilterChange }: ProductFilter
   const [maxPrice, setMaxPrice] = useState(filters.maxPrice || '');
 
   useEffect(() => {
-    api.get('/categories').then(({ data }) => setCategories(data.categories)).catch(() => setCategories(dummyCategories));
+    api.get('/categories').then(({ data }) => setCategories(data.categories)).catch(() => setCategories([]));
   }, []);
+
 
   const applyPriceFilter = () => {
     onFilterChange({ ...filters, minPrice, maxPrice });
@@ -36,21 +37,21 @@ export default function ProductFilter({ filters, onFilterChange }: ProductFilter
   const hasActiveFilters = filters.category || filters.minPrice || filters.maxPrice || filters.brand;
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full space-y-8 overflow-y-auto pb-24 px-4 pt-8 scrollbar-custom">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="font-bold text-lg uppercase tracking-wide text-brand-black">Filters</h3>
+      <div className="flex flex-col gap-3 mt-4">
+        <h3 className="font-extrabold text-2xl uppercase tracking-widest text-brand-black">Filters</h3>
         {hasActiveFilters && (
           <button
             onClick={clearFilters}
-            className="text-xs text-brand-red hover:text-brand-red-dark font-medium flex items-center gap-1"
+            className="text-xs text-brand-red font-bold flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 border border-red-100 w-full py-2 rounded-md transition-colors"
           >
-            <X size={12} /> Clear All
+            <X size={14} className="stroke-[3]" /> Clear All Active Filters
           </button>
         )}
       </div>
 
-      <Separator />
+      <Separator className="bg-gray-200" />
 
       {/* Categories */}
       <div>

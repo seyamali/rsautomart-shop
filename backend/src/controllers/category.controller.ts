@@ -45,6 +45,7 @@ export const createCategory = async (req: Request, res: Response): Promise<void>
     const category = await Category.create({ name, slug, description, parent, image });
     res.status(201).json({ category });
   } catch (error: any) {
+    console.error('Create Category Error:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -101,3 +102,13 @@ export const deleteCategory = async (req: Request, res: Response): Promise<void>
     res.status(500).json({ message: error.message });
   }
 };
+
+export const getAdminCategories = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const categories = await Category.find().populate('parent', 'name slug');
+    res.json({ categories });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+

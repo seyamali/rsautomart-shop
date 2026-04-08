@@ -8,20 +8,10 @@ import SortDropdown from '@/components/product/SortDropdown';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function NewArrivals() {
-  const { products, loading } = useNewArrivals();
   const [sort, setSort] = useState('newest');
+  const { products, loading } = useNewArrivals(sort);
 
   if (!loading && products.length === 0) return null;
-
-  // Client-side sort for homepage section
-  const sorted = [...products].sort((a, b) => {
-    switch (sort) {
-      case 'price_asc': return (a.discountPrice || a.price) - (b.discountPrice || b.price);
-      case 'price_desc': return (b.discountPrice || b.price) - (a.discountPrice || a.price);
-      case 'popular': return (b.totalSold || 0) - (a.totalSold || 0);
-      default: return 0;
-    }
-  });
 
   return (
     <section className="bg-gray-50 py-10">
@@ -45,7 +35,7 @@ export default function NewArrivals() {
                   <Skeleton className="h-4 w-1/2 mt-2" />
                 </div>
               ))
-            : sorted.slice(0, 8).map((product) => (
+            : products.slice(0, 8).map((product: any) => (
                 <ProductCard key={product._id} product={product} />
               ))}
         </div>

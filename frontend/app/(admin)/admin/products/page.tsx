@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Plus, Search, Edit, Trash2 } from 'lucide-react';
+import { formatPrice, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatPrice } from '@/lib/utils';
+
 import { toast } from 'sonner';
 import api from '@/lib/api';
 
@@ -23,8 +24,9 @@ export default function AdminProductsPage() {
     setLoading(true);
     const params = new URLSearchParams({ page: String(page), limit: '20' });
     if (search) params.set('search', search);
-    api.get(`/products?${params}`)
+    api.get(`/products/admin?${params}`)
       .then(({ data }) => { setProducts(data.products); setPagination(data.pagination); })
+
       .catch(() => {})
       .finally(() => setLoading(false));
   };
@@ -49,18 +51,25 @@ export default function AdminProductsPage() {
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Products ({pagination.total})</h1>
-        <Button render={<Link href="/admin/products/new" />} className="bg-brand-red hover:bg-brand-red-dark">
-          <Plus size={16} className="mr-1" /> Add Product
-        </Button>
+    <div className="flex flex-col">
+      {/* Sticky Header - No gaps */}
+      <div className="sticky top-0 z-20 bg-gray-50 px-6 py-6 border-b border-gray-100 shadow-sm">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Products ({pagination.total})</h1>
+          <Button nativeButton={false} render={<Link href="/admin/products/new" />} className="bg-brand-red hover:bg-brand-red-dark">
+            <Plus size={16} className="mr-1" /> Add Product
+          </Button>
+        </div>
+
+        <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
+          <Input placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-white" />
+          <Button type="submit" variant="outline" className="bg-white"><Search size={16} /></Button>
+        </form>
       </div>
 
-      <form onSubmit={handleSearch} className="flex gap-2 mb-6 max-w-md">
-        <Input placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} />
-        <Button type="submit" variant="outline"><Search size={16} /></Button>
-      </form>
+      <div className="flex-1 px-6 py-6">
+
+
 
       {loading ? (
         <div className="space-y-3">
@@ -112,7 +121,7 @@ export default function AdminProductsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" render={<Link href={`/admin/products/${product._id}`} />}>
+                      <Button variant="ghost" size="icon" nativeButton={false} render={<Link href={`/admin/products/${product._id}`} />}>
                         <Edit size={16} />
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => deleteProduct(product._id)}>
@@ -127,15 +136,66 @@ export default function AdminProductsPage() {
         </div>
       )}
 
-      {pagination.pages > 1 && (
-        <div className="flex justify-center gap-2 mt-6">
-          {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((p) => (
-            <Button key={p} variant={p === page ? 'default' : 'outline'} size="sm" onClick={() => setPage(p)}>
-              {p}
+        {pagination.pages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-8 pb-10">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 1}
+              onClick={() => setPage(1)}
+              className="hidden sm:inline-flex"
+            >
+              First
             </Button>
-          ))}
-        </div>
-      )}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 1}
+              onClick={() => setPage(page - 1)}
+            >
+              Previous
+            </Button>
+            
+            <div className="flex items-center gap-1">
+              {Array.from({ length: pagination.pages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === pagination.pages || (p >= page - 2 && p <= page + 2))
+                .map((p, i, arr) => (
+                  <div key={p} className="flex items-center">
+                    {i > 0 && arr[i-1] !== p - 1 && <span className="px-2 text-gray-400">...</span>}
+                    <Button
+                      variant={p === page ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setPage(p)}
+                      className={cn("w-9 px-0", p === page ? "bg-brand-red hover:bg-brand-red-dark" : "")}
+                    >
+                      {p}
+                    </Button>
+                  </div>
+                ))}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === pagination.pages}
+              onClick={() => setPage(page + 1)}
+            >
+              Next
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === pagination.pages}
+              onClick={() => setPage(pagination.pages)}
+              className="hidden sm:inline-flex"
+            >
+              Last
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
+
+
   );
 }

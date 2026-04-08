@@ -35,8 +35,8 @@ export default function ShopPage() {
                 <SlidersHorizontal size={16} />
                 <span className="uppercase text-xs font-bold tracking-wider">Filter</span>
               </SheetTrigger>
-              <SheetContent side="left" className="w-80">
-                <div className="pt-6">
+              <SheetContent side="left" className="w-[85vw] sm:w-[400px] flex flex-col p-0">
+                <div className="flex-1 overflow-hidden">
                   <ProductFilter filters={filters} onFilterChange={(f) => { setFilters(f); setPage(1); }} />
                 </div>
               </SheetContent>

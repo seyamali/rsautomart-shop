@@ -117,4 +117,10 @@ router.get('/customers', async (req: Request, res: Response) => {
   }
 });
 
+// Admin Order Management (Centralized)
+import { getAllOrders, getOrderById, updateOrderStatus } from '../controllers/order.controller';
+router.get('/orders', getAllOrders);
+router.get('/orders/:id', getOrderById);
+router.put('/orders/:id', updateOrderStatus);
+
 export default router;

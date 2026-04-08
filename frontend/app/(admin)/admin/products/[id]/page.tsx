@@ -2,6 +2,8 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { X, Plus } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -130,12 +132,72 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>New Images</CardTitle></CardHeader>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Product Images</CardTitle>
+              <div className="text-xs text-gray-400">
+                Total: {(form.existingImages?.length || 0) + images.length} / 6
+              </div>
+            </div>
+          </CardHeader>
           <CardContent>
-            <input type="file" accept="image/*" multiple onChange={(e) => setImages(Array.from(e.target.files || []).slice(0, 6))}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-brand-red-light file:text-brand-red" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 mb-4">
+              {/* Existing Images */}
+              {form.existingImages?.map((img: any, i: number) => (
+                <div key={`existing-${i}`} className="relative aspect-square rounded-lg overflow-hidden border-2 border-brand-red/20 group">
+                  <img src={img.url} alt="" className="w-full h-full object-cover" />
+                  <div className="absolute top-1 left-1 bg-brand-red text-white text-[8px] font-bold px-1 rounded">LIVE</div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newExisting = form.existingImages.filter((_: any, j: number) => j !== i);
+                      setForm({ ...form, existingImages: newExisting });
+                    }}
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+
+              {/* New Image Previews */}
+              {images.map((file, i) => (
+                <div key={`new-${i}`} className="relative aspect-square rounded-lg overflow-hidden border-2 border-green-500/20 group">
+                  <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
+                  <div className="absolute top-1 left-1 bg-green-500 text-white text-[8px] font-bold px-1 rounded">NEW</div>
+                  <button
+                    type="button"
+                    onClick={() => setImages(images.filter((_, j) => j !== i))}
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+
+              {/* Add Button */}
+              {(form.existingImages?.length || 0) + images.length < 6 && (
+                <label className="flex flex-col items-center justify-center aspect-square rounded-lg border-2 border-dashed border-gray-300 hover:border-brand-red cursor-pointer transition-colors bg-gray-50">
+                  <Plus size={24} className="text-gray-400" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      setImages([...images, ...files].slice(0, 6 - (form.existingImages?.length || 0)));
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+            <p className="text-[11px] text-gray-400">
+              * Red border = Existing on server. Green border = New upload. First visible image will be primary.
+            </p>
           </CardContent>
         </Card>
+
 
         <Card>
           <CardHeader><CardTitle>Settings</CardTitle></CardHeader>

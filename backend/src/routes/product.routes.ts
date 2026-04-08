@@ -9,7 +9,9 @@ import {
   updateProduct,
   deleteProduct,
   updateStock,
+  getAdminProducts,
 } from '../controllers/product.controller';
+
 import { getProductReviews, createReview, deleteReview } from '../controllers/review.controller';
 import { verifyToken } from '../middleware/auth.middleware';
 import { isAdmin } from '../middleware/admin.middleware';
@@ -22,7 +24,9 @@ router.get('/', getProducts);
 router.get('/featured', getFeaturedProducts);
 router.get('/best-sellers', getBestSellers);
 router.get('/new-arrivals', getNewArrivals);
+router.get('/admin', verifyToken, isAdmin, getAdminProducts);
 router.get('/:slug', getProductBySlug);
+
 
 // Reviews
 router.get('/:productId/reviews', getProductReviews);
@@ -31,6 +35,8 @@ router.delete('/reviews/:id', verifyToken, deleteReview);
 
 // Admin
 router.post('/', verifyToken, isAdmin, upload.array('images', 6), createProduct);
+
+
 router.put('/:id', verifyToken, isAdmin, upload.array('images', 6), updateProduct);
 router.delete('/:id', verifyToken, isAdmin, deleteProduct);
 router.patch('/:id/stock', verifyToken, isAdmin, updateStock);

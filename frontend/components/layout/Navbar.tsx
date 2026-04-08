@@ -2,15 +2,17 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
-import { Search, ShoppingCart, User, Heart, Menu, X, ChevronDown } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Search, ShoppingCart, User, Heart, Menu, X, ChevronDown, Ticket } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import CartDrawer from '@/components/cart/CartDrawer';
+import CategoryBar from '@/components/layout/CategoryBar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +33,14 @@ export default function Navbar() {
 
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
+  const [categories, setCategories] = useState<any[]>([]);
+  
+  useEffect(() => {
+    api.get('/categories')
+      .then(({ data }) => setCategories(data.categories))
+      .catch(() => {});
+  }, []);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -46,9 +56,10 @@ export default function Navbar() {
         <i className="mr-1">🚚</i> FREE SHIPPING on orders over ৳999 &nbsp;|&nbsp; Cash on Delivery Available
       </div>
 
-      {/* Main Navbar */}
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-360 mx-auto px-4 py-3 flex items-center justify-between gap-4 flex-wrap lg:flex-nowrap">
+      {/* Main Navbar & Category Bar Wrapper */}
+      <header className="sticky top-0 z-50 flex flex-col shadow-sm">
+        <div className="bg-white border-b border-gray-200 w-full relative z-50">
+          <div className="max-w-360 mx-auto px-4 py-3 flex items-center justify-between gap-4 flex-wrap lg:flex-nowrap">
           {/* Mobile Menu Button */}
           <button
             className="lg:hidden p-2 order-first"
@@ -82,13 +93,15 @@ export default function Navbar() {
           <div className="order-2 lg:order-3 flex items-center gap-3 md:gap-5 flex-shrink-0">
             {/* Wishlist */}
             <Link href="/wishlist" className="hidden md:flex flex-col items-center text-gray-600 hover:text-brand-red transition-colors group">
-              <Heart size={20} className="group-hover:scale-110 transition-transform" />
+              <span className="relative">
+                <Heart size={20} className="group-hover:scale-110 transition-transform" />
+                {wishlistItems.length > 0 && (
+                  <span className="absolute -top-2 -right-2.5 bg-brand-red text-white text-[10px] font-bold w-[18px] h-[18px] flex items-center justify-center rounded-full leading-none">
+                    {wishlistItems.length}
+                  </span>
+                )}
+              </span>
               <span className="text-[10px] mt-0.5 font-medium uppercase tracking-wide">Wishlist</span>
-              {wishlistItems.length > 0 && (
-                <Badge className="absolute -top-1 -right-2 h-4 w-4 flex items-center justify-center p-0 text-[9px] bg-brand-red">
-                  {wishlistItems.length}
-                </Badge>
-              )}
             </Link>
 
             {/* Cart */}
@@ -103,6 +116,14 @@ export default function Navbar() {
               </span>
               <span className="text-[10px] mt-0.5 font-medium uppercase tracking-wide">Cart</span>
             </button>
+
+            {/* Offers */}
+            <Link href="/offers" className="hidden lg:flex flex-col items-center text-gray-600 hover:text-brand-red transition-colors group">
+              <span className="relative">
+                <Ticket size={20} className="group-hover:scale-110 transition-transform" />
+              </span>
+              <span className="text-[10px] mt-0.5 font-medium uppercase tracking-wide">Offers</span>
+            </Link>
 
             {/* Auth */}
             {user ? (
@@ -136,15 +157,145 @@ export default function Navbar() {
             )}
           </div>
         </div>
+        </div>
+
+        <CategoryBar />
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t bg-white pb-4">
-            <nav className="max-w-360 mx-auto px-4 flex flex-col gap-2 pt-4">
-              <Link href="/shop" className="py-2 hover:text-brand-red" onClick={() => setMobileMenuOpen(false)}>All Products</Link>
-              <Link href="/offers" className="py-2 hover:text-brand-red" onClick={() => setMobileMenuOpen(false)}>Offers & Deals</Link>
-              <Link href="/wishlist" className="py-2 hover:text-brand-red sm:hidden" onClick={() => setMobileMenuOpen(false)}>Wishlist</Link>
+          <div className="lg:hidden fixed inset-0 z-[60] bg-white flex flex-col animate-in slide-in-from-left duration-300">
+            <div className="flex items-center justify-between px-4 py-4 border-b bg-white/80 backdrop-blur-md sticky top-0 z-10">
+              <Image src="/logo-small.png" alt="RS Automart" width={140} height={40} className="h-8 w-auto" />
+              <button onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <X size={24} className="text-gray-900" />
+              </button>
+            </div>
+            
+            <div className="px-4 py-4 border-b bg-gray-50/50">
+              <form onSubmit={(e) => { e.preventDefault(); handleSearch(e); setMobileMenuOpen(false); }} className="relative">
+                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input 
+                   type="text" 
+                   placeholder="Search products..." 
+                   className="w-full bg-white border-2 border-gray-100 rounded-2xl py-3 pl-10 pr-4 text-sm font-bold focus:border-brand-red outline-none transition-all"
+                   value={searchQuery}
+                   onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </form>
+            </div>
+
+            <nav className="flex-1 overflow-y-auto px-4 py-4 flex flex-col scrollbar-hide py-10">
+              <p className="text-[10px] uppercase font-black text-gray-400 mb-4 px-2 tracking-widest leading-none">Main Menu</p>
+              <div className="space-y-1 mb-6">
+                <Link 
+                  href="/shop" 
+                  className="flex items-center justify-between py-3.5 px-3 rounded-2xl hover:bg-gray-50 text-gray-900 font-bold uppercase tracking-wide transition-all group"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  All Products
+                  <ChevronDown size={14} className="-rotate-90 text-gray-300 group-hover:text-brand-red transition-colors" />
+                </Link>
+                <Link 
+                  href="/offers" 
+                  className="flex items-center justify-between py-3.5 px-3 rounded-2xl hover:bg-gray-50 text-brand-red font-black uppercase tracking-wide transition-all group"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <span className="flex items-center gap-3">
+                     <div className="w-8 h-8 rounded-xl bg-brand-red/10 flex items-center justify-center">
+                        <Ticket size={16} />
+                     </div>
+                     Offers & Deals
+                  </span>
+                  <ChevronDown size={14} className="-rotate-90 text-gray-300 group-hover:text-brand-red transition-colors" />
+                </Link>
+              </div>
+
+              <p className="text-[10px] uppercase font-black text-gray-400 mb-4 px-2 tracking-widest leading-none">Browse Categories</p>
+              <div className="space-y-1 mb-6">
+                {categories.map((cat) => (
+                  <Link 
+                    key={cat._id}
+                    href={`/shop/${cat.slug}`}
+                    className="flex items-center justify-between py-3 px-3 rounded-2xl hover:bg-gray-50 text-gray-700 font-bold text-sm tracking-wide transition-all group"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {cat.name}
+                    <ChevronDown size={14} className="-rotate-90 text-gray-200 group-hover:text-brand-red transition-colors" />
+                  </Link>
+                ))}
+              </div>
+              
+              <p className="text-[10px] uppercase font-black text-gray-400 mb-4 px-2 tracking-widest leading-none">Personal</p>
+              <div className="space-y-1">
+                <Link 
+                  href="/wishlist" 
+                  className="flex items-center justify-between py-3.5 px-3 rounded-2xl hover:bg-gray-50 text-gray-900 font-bold uppercase tracking-wide transition-all group"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <span className="flex items-center gap-3">
+                     <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600">
+                        <Heart size={16} />
+                     </div>
+                     My Wishlist
+                  </span>
+                  <ChevronDown size={14} className="-rotate-90 text-gray-300 group-hover:text-brand-red transition-colors" />
+                </Link>
+              </div>
+              
+              <div className="my-4 border-t border-gray-100" />
+              <p className="text-[10px] uppercase font-black text-gray-400 mb-4 px-2 tracking-widest leading-none">My Account</p>
+
+              {user ? (
+                <div className="space-y-1">
+                  <Link 
+                    href="/profile" 
+                    className="flex items-center justify-between py-4 px-3 rounded-2xl hover:bg-gray-50 text-gray-900 font-bold uppercase tracking-wide transition-all group"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <span className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600">
+                         <User size={16} />
+                      </div>
+                      Account Settings
+                    </span>
+                    <ChevronDown size={14} className="-rotate-90 text-gray-300 group-hover:text-brand-red transition-colors" />
+                  </Link>
+                  <button 
+                    onClick={() => { logout(); setMobileMenuOpen(false); }}
+                    className="flex items-center py-4 px-5 text-gray-400 font-bold uppercase tracking-tight text-[11px] hover:text-brand-red transition-colors"
+                  >
+                    Sign out of your account
+                  </button>
+                </div>
+              ) : (
+                <Link 
+                  href="/login" 
+                  className="bg-brand-black text-white p-5 rounded-[2rem] flex items-center justify-between font-black uppercase tracking-widest shadow-xl shadow-gray-200"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Sign In / Register
+                  <User size={18} className="text-gray-400" />
+                </Link>
+              )}
             </nav>
+
+            <div className="p-6 border-t border-gray-100 bg-gray-50">
+               <p className="text-[10px] uppercase font-black text-gray-400 mb-4 tracking-tighter">Support & Contact</p>
+               <div className="flex flex-col gap-3">
+                  <a href="tel:+8801700000000" className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-brand-red/10 flex items-center justify-center text-brand-red">
+                       <i className="text-xs">📞</i>
+                    </div>
+                    +880 1700-000000
+                  </a>
+                  <a href="mailto:support@rsautomart.com" className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-brand-red/10 flex items-center justify-center text-brand-red">
+                       <i className="text-xs">✉️</i>
+                    </div>
+                    support@rsautomart.com
+                  </a>
+               </div>
+            </div>
           </div>
         )}
       </header>
