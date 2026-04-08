@@ -67,23 +67,26 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                     </p>
                     <div className="flex items-center gap-2 mt-2">
                       <button
+                        aria-label="Decrease quantity"
                         onClick={() => updateItemQuantity(item.product._id, item.quantity - 1)}
-                        className="w-7 h-7 flex items-center justify-center border rounded hover:bg-gray-100"
+                        className="w-10 h-10 flex items-center justify-center border rounded-md hover:bg-gray-100 active:bg-gray-200"
                       >
-                        <Minus size={14} />
+                        <Minus size={16} />
                       </button>
-                      <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
+                      <span className="text-sm font-semibold w-8 text-center">{item.quantity}</span>
                       <button
+                        aria-label="Increase quantity"
                         onClick={() => updateItemQuantity(item.product._id, item.quantity + 1)}
-                        className="w-7 h-7 flex items-center justify-center border rounded hover:bg-gray-100"
+                        className="w-10 h-10 flex items-center justify-center border rounded-md hover:bg-gray-100 active:bg-gray-200"
                       >
-                        <Plus size={14} />
+                        <Plus size={16} />
                       </button>
                       <button
+                        aria-label="Remove item"
                         onClick={() => removeFromCart(item.product._id)}
-                        className="ml-auto p-1 text-red-500 hover:bg-red-50 rounded"
+                        className="ml-auto w-10 h-10 flex items-center justify-center text-red-500 hover:bg-red-50 rounded-md"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </div>

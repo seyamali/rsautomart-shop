@@ -9,7 +9,7 @@ const badges = [
 
 export default function TrustBadges() {
   return (
-    <section className="bg-gray-50 py-10">
+    <section className="bg-gray-50 py-14 md:py-16">
       <div className="max-w-360 mx-auto px-4">
         <div className="text-center mb-8">
           <h2 className="text-xl md:text-2xl font-bold uppercase tracking-wide text-brand-black">Why Choose Us</h2>

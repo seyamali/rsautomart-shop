@@ -14,7 +14,7 @@ export default function NewArrivals() {
   if (!loading && products.length === 0) return null;
 
   return (
-    <section className="bg-gray-50 py-10">
+    <section className="bg-gray-50 py-14 md:py-16">
       <div className="max-w-360 mx-auto px-4">
         <SectionHeader title="New Arrivals" viewAllHref="/shop?sort=newest" />
 

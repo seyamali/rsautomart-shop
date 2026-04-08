@@ -42,6 +42,10 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
         });
       }
     } else {
+      if (!req.user) {
+        res.status(400).json({ message: 'No items provided.' });
+        return;
+      }
       const cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
       if (!cart || cart.items.length === 0) {
         res.status(400).json({ message: 'Cart is empty.' });
@@ -70,9 +74,16 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
       return;
     }
 
+    const orderItems = validatedItems;
     // 2. Calculate Secure Totals
-    const subtotal = validatedItems.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);
-    let shippingCost = isInsideDhaka(shippingAddress) ? 60 : 120;
+    const subtotal = orderItems.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);
+    
+    // Check shipping
+    const district = shippingAddress.district?.trim().toLowerCase();
+    const division = shippingAddress.division?.trim().toLowerCase();
+    const isDhaka = division === 'dhaka' || (district ? DHAKA_DISTRICTS.includes(district) : false);
+    
+    let shippingCost = isDhaka ? 60 : 120;
     if (subtotal >= FREE_SHIPPING_MIN) shippingCost = 0;
 
     let discount = 0;
@@ -81,7 +92,7 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
       const result = await checkCouponEligibility({
         code: normalizedCouponCode,
         orderAmount: subtotal,
-        userId: req.user._id.toString(),
+        userId: req.user?._id?.toString() || '',
       });
       discount = result.discount;
     }
@@ -89,8 +100,8 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
 
     // 3. Create the Order
     const order = await Order.create({
-      user: req.user._id,
-      items: validatedItems,
+      user: req.user?._id,
+      items: orderItems,
       shippingAddress,
       paymentMethod: paymentMethod || 'COD',
       paymentStatus: 'pending',
@@ -103,14 +114,14 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
     });
 
     // 4. Reduce Stock
-    for (const item of validatedItems) {
+    for (const item of orderItems) {
       await Product.findByIdAndUpdate(item.product, {
         $inc: { 'stock.quantity': -item.quantity, totalSold: item.quantity },
       });
     }
 
     // 5. Cleanup
-    if (!directItems || directItems.length === 0) {
+    if (req.user && (!directItems || directItems.length === 0)) {
       await Cart.findOneAndUpdate({ user: req.user._id }, { items: [], totalAmount: 0 });
     }
 
@@ -120,9 +131,14 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
 
     // 6. Notifications
     try {
-      await sendOrderConfirmation(req.user.email, order.orderNumber, totalAmount, validatedItems);
-      await sendNewOrderNotification(order.orderNumber, totalAmount, req.user.name);
-    } catch (e) { console.error('Email error:', e); }
+      const customerEmail = req.user?.email || shippingAddress?.email;
+      const customerName = req.user?.name || shippingAddress?.name || 'Customer';
+      
+      await sendOrderConfirmation(customerEmail, order.orderNumber, totalAmount, orderItems);
+      await sendNewOrderNotification(order.orderNumber, totalAmount, customerName);
+    } catch (e) {
+      console.error('Email error:', e);
+    }
 
     res.status(201).json({ order });
   } catch (error: any) {
@@ -150,7 +166,7 @@ export const getOrderById = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
-    if (req.user.role !== 'admin' && order.user._id?.toString() !== req.user._id.toString()) {
+    if (req.user.role !== 'admin' && (!order.user || order.user._id?.toString() !== req.user._id.toString())) {
       res.status(403).json({ message: 'Access denied.' });
       return;
     }

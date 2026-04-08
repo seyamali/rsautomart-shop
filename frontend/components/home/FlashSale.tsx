@@ -38,7 +38,7 @@ export default function FlashSale() {
   if (!loading && products.length === 0) return null;
 
   return (
-    <section className="bg-gradient-to-r from-brand-red to-red-700 py-10">
+    <section className="bg-linear-to-r from-brand-red to-red-700 py-14 md:py-16">
       <div className="container mx-auto px-4">
         <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
           <div className="flex items-center gap-3 text-white">

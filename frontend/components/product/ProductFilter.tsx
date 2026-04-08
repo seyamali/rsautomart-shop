@@ -97,31 +97,50 @@ export default function ProductFilter({ filters, onFilterChange }: ProductFilter
           Price Range (৳)
           <span className="absolute bottom-0 left-0 w-8 h-0.5 bg-brand-red rounded" />
         </h4>
-        <div className="flex gap-2">
-          <div>
-            <Label className="text-xs text-gray-500">Min</Label>
-            <Input
-              type="number"
-              placeholder="0"
-              value={minPrice}
-              onChange={(e) => setMinPrice(e.target.value)}
-              className="h-9"
-            />
-          </div>
-          <div>
-            <Label className="text-xs text-gray-500">Max</Label>
-            <Input
-              type="number"
-              placeholder="99999"
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(e.target.value)}
-              className="h-9"
-            />
-          </div>
+
+        <div className="flex items-center justify-between text-sm font-semibold text-brand-black mb-3">
+          <span>৳{minPrice || 0}</span>
+          <span>৳{maxPrice || 10000}</span>
         </div>
+
+        <div className="relative h-6">
+          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1 bg-gray-200 rounded-full" />
+          <div
+            className="absolute top-1/2 -translate-y-1/2 h-1 bg-brand-red rounded-full"
+            style={{
+              left: `${((Number(minPrice) || 0) / 10000) * 100}%`,
+              right: `${100 - ((Number(maxPrice) || 10000) / 10000) * 100}%`,
+            }}
+          />
+          <input
+            type="range"
+            min={0}
+            max={10000}
+            step={50}
+            value={Number(minPrice) || 0}
+            onChange={(e) => {
+              const v = Math.min(Number(e.target.value), Number(maxPrice) || 10000);
+              setMinPrice(String(v));
+            }}
+            className="range-thumb absolute inset-0 w-full appearance-none bg-transparent pointer-events-none"
+          />
+          <input
+            type="range"
+            min={0}
+            max={10000}
+            step={50}
+            value={Number(maxPrice) || 10000}
+            onChange={(e) => {
+              const v = Math.max(Number(e.target.value), Number(minPrice) || 0);
+              setMaxPrice(String(v));
+            }}
+            className="range-thumb absolute inset-0 w-full appearance-none bg-transparent pointer-events-none"
+          />
+        </div>
+
         <Button
           size="sm"
-          className="mt-3 w-full bg-brand-black hover:bg-brand-red text-white text-xs uppercase tracking-wider font-bold"
+          className="mt-4 w-full bg-brand-black hover:bg-brand-red text-white text-xs uppercase tracking-wider font-bold min-h-11"
           onClick={applyPriceFilter}
         >
           Apply Price Filter

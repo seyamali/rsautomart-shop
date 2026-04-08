@@ -13,7 +13,7 @@ import { useProducts } from '@/hooks/useProducts';
 export default function ShopPage() {
   const [filters, setFilters] = useState<Record<string, string>>({ sort: 'popular' });
   const [page, setPage] = useState(1);
-  const { products, pagination, loading } = useProducts({ ...filters, page: String(page), limit: '4' });
+  const { products, pagination, loading } = useProducts({ ...filters, page: String(page), limit: '12' });
 
   const handleSortChange = (sort: string) => {
     setFilters({ ...filters, sort });
@@ -36,7 +36,7 @@ export default function ShopPage() {
                 <span className="uppercase text-xs font-bold tracking-wider">Filter</span>
               </SheetTrigger>
               <SheetContent side="left" className="w-[85vw] sm:w-[400px] flex flex-col p-0">
-                <div className="flex-1 overflow-hidden">
+                <div className="flex-1 overflow-y-auto scrollbar-hide p-6">
                   <ProductFilter filters={filters} onFilterChange={(f) => { setFilters(f); setPage(1); }} />
                 </div>
               </SheetContent>
@@ -64,41 +64,43 @@ export default function ShopPage() {
         {/* Product Grid */}
         <ProductGrid products={products} loading={loading} />
 
-        {/* Pagination */}
+        {/* Pagination Overlay (Windowed) */}
         {pagination.pages > 1 && (
-          <nav className="flex items-center justify-center gap-1.5 mt-10">
+          <nav className="flex items-center justify-center gap-1.5 mt-12 pb-10">
             <button
-              onClick={() => setPage(Math.max(1, page - 1))}
+              onClick={() => { setPage(Math.max(1, page - 1)); window.scrollTo(0,0); }}
               disabled={page === 1}
-              className="w-9 h-9 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:border-brand-red hover:text-brand-red transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="w-10 h-10 flex items-center justify-center rounded-xl border border-gray-200 text-gray-500 hover:border-brand-red hover:text-brand-red transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-white shadow-sm"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={18} />
             </button>
+            
             {Array.from({ length: pagination.pages }, (_, i) => i + 1)
               .filter((p) => p === 1 || p === pagination.pages || Math.abs(p - page) <= 1)
               .map((p, idx, arr) => (
-                <span key={p}>
+                <span key={p} className="flex items-center gap-1.5">
                   {idx > 0 && arr[idx - 1] !== p - 1 && (
-                    <span className="w-9 h-9 inline-flex items-center justify-center text-gray-400 text-sm">...</span>
+                    <span className="w-10 h-10 inline-flex items-center justify-center text-gray-400 text-sm font-bold tracking-widest">...</span>
                   )}
                   <button
-                    onClick={() => setPage(p)}
-                    className={`w-9 h-9 inline-flex items-center justify-center rounded text-sm font-medium transition-colors ${
+                    onClick={() => { setPage(p); window.scrollTo(0,0); }}
+                    className={`w-10 h-10 inline-flex items-center justify-center rounded-xl text-sm font-bold transition-all shadow-sm ${
                       p === page
-                        ? 'bg-brand-red text-white font-bold'
-                        : 'border border-gray-200 text-gray-600 hover:border-brand-red hover:text-brand-red'
+                        ? 'bg-brand-red text-white scale-110'
+                        : 'bg-white border border-gray-100 text-gray-600 hover:border-brand-red hover:text-brand-red'
                     }`}
                   >
                     {p}
                   </button>
                 </span>
               ))}
+
             <button
-              onClick={() => setPage(Math.min(pagination.pages, page + 1))}
+              onClick={() => { setPage(Math.min(pagination.pages, page + 1)); window.scrollTo(0,0); }}
               disabled={page === pagination.pages}
-              className="w-9 h-9 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:border-brand-red hover:text-brand-red transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="w-10 h-10 flex items-center justify-center rounded-xl border border-gray-200 text-gray-500 hover:border-brand-red hover:text-brand-red transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-white shadow-sm"
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={18} />
             </button>
           </nav>
         )}

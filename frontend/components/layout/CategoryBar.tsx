@@ -3,9 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
-import api from '@/lib/api';
-
 import { usePathname } from 'next/navigation';
+import api from '@/lib/api';
 
 export default function CategoryBar() {
   const [categories, setCategories] = useState<any[]>([]);
@@ -30,7 +29,7 @@ export default function CategoryBar() {
   if (categories.length === 0) return null;
 
   return (
-    <div className="bg-brand-black z-40 border-b border-white/5 w-full">
+    <div className="bg-brand-black z-40 border-b border-white/5 w-full relative">
       <div className="max-w-360 mx-auto relative lg:px-4">
         {/* Scroll hint arrow — only on mobile, disappears after first scroll */}
         {!hasScrolled && !isAtEnd && (
@@ -43,26 +42,22 @@ export default function CategoryBar() {
           </div>
         )}
 
-        {/* Right fade for desktop */}
+        {/* Right fade hint for scrollability */}
         {!isAtEnd && (
-          <div className="hidden lg:block absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-brand-black to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-brand-black to-transparent z-10 pointer-events-none" />
         )}
 
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex items-stretch overflow-x-auto lg:overflow-x-hidden"
+          className="flex items-stretch overflow-x-auto scrollbar-hide"
           style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
             WebkitOverflowScrolling: 'touch',
-            /* Show partial 4th item on mobile to hint scrollability */
-            paddingRight: '2rem',
           }}
         >
           <Link
             href="/shop"
-            className={`flex items-center gap-2 text-[10px] uppercase tracking-widest px-5 py-3.5 transition-colors flex-shrink-0 group
+            className={`flex items-center gap-2 text-[10px] sm:text-xs font-bold uppercase tracking-widest px-5 py-3.5 transition-colors flex-shrink-0 group
               ${pathname === '/shop' ? 'bg-brand-red text-white font-black hover:bg-red-700' : 'text-gray-400 hover:text-white hover:bg-white/5 font-bold border-r border-white/5'}`}
           >
             <span className="flex flex-col gap-[3px] w-3.5">
@@ -79,7 +74,7 @@ export default function CategoryBar() {
               <Link
                 key={cat._id}
                 href={`/shop/${cat.slug}`}
-                className={`text-[10px] uppercase tracking-wider px-4 py-3.5 flex-shrink-0 whitespace-nowrap transition-colors border-l border-white/5
+                className={`text-[10px] sm:text-xs uppercase tracking-wider px-4 py-3.5 flex-shrink-0 whitespace-nowrap transition-colors border-l border-white/5
                   ${isActive ? 'bg-brand-red text-white font-black hover:bg-red-700' : 
                     `font-bold ${i === 2 && !hasScrolled ? 'text-gray-500 hover:text-white hover:bg-white/5 lg:text-gray-400' : 'text-gray-400 hover:text-white hover:bg-white/5'}`
                   }`}

@@ -31,7 +31,7 @@ export default function FeaturedCategories() {
 
 
   return (
-    <section className="max-w-360 mx-auto px-4 py-10">
+    <section className="max-w-360 mx-auto px-4 py-14 md:py-16">
       <SectionHeader title="Top Categories" />
 
       {/* Scrollable Category Row */}

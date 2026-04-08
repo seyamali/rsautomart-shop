@@ -89,13 +89,13 @@ export default function HeroBanner() {
         {/* Left / Right Arrows (show on hover) */}
         <button
           onClick={() => setCurrent((c) => (c - 1 + banners.length) % banners.length)}
-          className="absolute top-1/2 left-3 -translate-y-1/2 w-10 h-10 bg-white/20 hover:bg-brand-red text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm"
+          className="absolute top-1/2 left-3 -translate-y-1/2 w-11 h-11 bg-white/80 hover:bg-brand-red text-brand-black hover:text-white rounded-full flex items-center justify-center shadow-md transition-all duration-300 backdrop-blur-sm md:opacity-70 md:group-hover:opacity-100"
         >
           <ChevronLeft size={18} />
         </button>
         <button
           onClick={() => setCurrent((c) => (c + 1) % banners.length)}
-          className="absolute top-1/2 right-3 -translate-y-1/2 w-10 h-10 bg-white/20 hover:bg-brand-red text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm"
+          className="absolute top-1/2 right-3 -translate-y-1/2 w-11 h-11 bg-white/80 hover:bg-brand-red text-brand-black hover:text-white rounded-full flex items-center justify-center shadow-md transition-all duration-300 backdrop-blur-sm md:opacity-70 md:group-hover:opacity-100"
         >
           <ChevronRight size={18} />
         </button>

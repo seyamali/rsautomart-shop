@@ -39,26 +39,26 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <div className="bg-white border border-gray-100 rounded-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 group flex flex-col">
       {/* Image */}
-      <div className="relative bg-gray-50 overflow-hidden">
-        <Link href={`/product/${product.slug}`}>
+      <div className="relative bg-gray-50 overflow-hidden aspect-square">
+        <Link href={`/product/${product.slug}`} className="block w-full h-full">
           {product.images?.[0]?.url ? (
             <Image
               src={product.images[0].url}
               alt={product.name}
-              width={400}
-              height={350}
-              className="w-full h-52 object-cover group-hover:scale-110 transition-transform duration-500"
+              fill
+              sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 25vw"
+              className="object-contain p-3 group-hover:scale-105 transition-transform duration-500"
             />
           ) : (
-            <div className="w-full h-52 flex items-center justify-center text-gray-400 text-sm">
+            <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
               No Image
             </div>
           )}
         </Link>
 
-        {/* Discount Badge – Top Right */}
+        {/* Discount Badge – Top Right (pill) */}
         {hasDiscount && (
-          <span className="absolute top-2.5 right-2.5 bg-brand-red text-white text-[10px] font-bold px-2 py-1 rounded">
+          <span className="absolute top-2.5 right-2.5 bg-brand-red text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
             -{getDiscountPercent(product.price, product.discountPrice)}%
           </span>
         )}
@@ -104,19 +104,23 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* Bottom: Qty + Add to Cart */}
         <div className="flex items-stretch gap-2 border-t border-gray-100 pt-3">
           {/* Quantity Selector */}
-          <div className="flex items-center border border-gray-200 rounded overflow-hidden w-1/3 flex-shrink-0">
+          <div className="flex items-center border border-gray-200 rounded-md overflow-hidden shrink-0">
             <button
+              type="button"
+              aria-label="Decrease quantity"
               onClick={() => setQty(Math.max(1, qty - 1))}
-              className="w-7 h-full text-gray-500 hover:text-brand-red hover:bg-gray-50 transition-colors text-sm font-bold"
+              className="w-11 h-11 flex items-center justify-center text-gray-600 hover:text-brand-red hover:bg-gray-50 transition-colors"
             >
-              <Minus size={12} className="mx-auto" />
+              <Minus size={16} />
             </button>
-            <span className="flex-1 text-center text-xs font-semibold select-none">{qty}</span>
+            <span className="w-8 text-center text-sm font-semibold select-none">{qty}</span>
             <button
+              type="button"
+              aria-label="Increase quantity"
               onClick={() => setQty(qty + 1)}
-              className="w-7 h-full text-gray-500 hover:text-brand-red hover:bg-gray-50 transition-colors text-sm font-bold"
+              className="w-11 h-11 flex items-center justify-center text-gray-600 hover:text-brand-red hover:bg-gray-50 transition-colors"
             >
-              <Plus size={12} className="mx-auto" />
+              <Plus size={16} />
             </button>
           </div>
           {/* Add to Cart Button */}
@@ -128,7 +132,7 @@ export default function ProductCard({ product }: ProductCardProps) {
               }
             }}
             disabled={product.stock?.status === 'out_of_stock'}
-            className="flex-1 bg-brand-black hover:bg-brand-red text-white text-xs font-bold uppercase tracking-wider rounded py-2.5 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 min-h-11 bg-brand-black hover:bg-brand-red text-white text-xs font-bold uppercase tracking-wider rounded-md transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ShoppingCart size={12} />
             {product.stock?.status === 'out_of_stock' ? 'Out of Stock' : 'Add to Cart'}

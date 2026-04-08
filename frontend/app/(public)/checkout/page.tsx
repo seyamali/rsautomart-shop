@@ -2,11 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea';
 import { useCart } from '@/hooks/useCart';
 import { useAuthStore } from '@/store/authStore';
 import { formatPrice } from '@/lib/utils';
@@ -15,7 +10,10 @@ import api from '@/lib/api';
 import Link from 'next/link';
 
 const DHAKA_DISTRICTS = ['dhaka', 'gazipur', 'narayanganj', 'manikganj', 'munshiganj', 'narsingdi'];
-const DIVISIONS = ['Dhaka', 'Chittagong', 'Rajshahi', 'Khulna', 'Barisal', 'Sylhet', 'Rangpur', 'Mymensingh'];
+const DIVISIONS = ['Dhaka', 'Chattogram', 'Rajshahi', 'Khulna', 'Barisal', 'Sylhet', 'Rangpur', 'Mymensingh'];
+
+const inputCls =
+  'w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -24,9 +22,10 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('COD');
   const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null);
+  
   const [form, setForm] = useState({
     name: user?.name || '',
-    phone: user?.phone || '',
+    phone: user?.phone?.replace(/^\+?880/, '') || '',
     address: '',
     area: '',
     district: '',
@@ -46,24 +45,13 @@ export default function CheckoutPage() {
     }
   }, []);
 
-  if (!user) {
-    return (
-      <div className="container mx-auto px-4 py-20 text-center">
-        <h1 className="text-2xl font-bold mb-4">Please login to continue</h1>
-        <Button render={<Link href="/login" />} className="bg-brand-red hover:bg-brand-red-dark">
-          Login
-        </Button>
-      </div>
-    );
-  }
-
   if (items.length === 0) {
     return (
-      <div className="container mx-auto px-4 py-20 text-center">
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 text-center">
         <h1 className="text-2xl font-bold mb-4">Your cart is empty</h1>
-        <Button render={<Link href="/shop" />} className="bg-brand-red hover:bg-brand-red-dark">
+        <Link href="/shop" className="bg-red-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-700 transition">
           Shop Now
-        </Button>
+        </Link>
       </div>
     );
   }
@@ -71,6 +59,8 @@ export default function CheckoutPage() {
   const normalizedDistrict = form.district.trim().toLowerCase();
   const normalizedDivision = form.division.trim().toLowerCase();
   const isDhaka = normalizedDivision === 'dhaka' || DHAKA_DISTRICTS.includes(normalizedDistrict);
+  
+  // Hardened logic: Free shipping over 999, else 60/120
   const shippingCost = totalAmount >= 999 ? 0 : isDhaka ? 60 : 120;
   const couponDiscount = coupon?.discount || 0;
   const grandTotal = totalAmount + shippingCost - couponDiscount;
@@ -94,7 +84,7 @@ export default function CheckoutPage() {
       }));
 
       const { data } = await api.post('/orders', {
-        shippingAddress: form,
+        shippingAddress: { ...form, phone: `+880${form.phone}` },
         paymentMethod,
         deliveryNote,
         items: orderItems,
@@ -125,131 +115,173 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold mb-6">Checkout</h1>
+    <div className="min-h-screen bg-gray-50 py-8 text-gray-800">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 className="text-2xl font-bold mb-6">Checkout</h1>
 
-      <form onSubmit={handleSubmit}>
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Shipping Info */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="border rounded-lg p-6">
-              <h2 className="text-lg font-semibold mb-4">Shipping Information</h2>
-              <div className="grid sm:grid-cols-2 gap-4">
+        {!user && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-start sm:items-center gap-3 shadow-sm">
+            <span className="text-xl">🎁</span>
+            <p className="text-sm text-gray-700">
+              <strong>Checking out as guest.</strong>{' '}
+              <Link href="/login" className="text-red-600 font-semibold hover:underline decoration-2 underline-offset-2">Sign in</Link> or{' '}
+              <Link href="/register" className="text-red-600 font-semibold hover:underline decoration-2 underline-offset-2">create an account</Link> to earn loyalty bonus points on this order!
+            </p>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-8 text-left">
+          {/* Left: Shipping + Payment */}
+          <div className="w-full lg:w-2/3 space-y-6">
+            {/* Shipping */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sm:p-8">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Shipping Information</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <Label>Full Name *</Label>
-                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name <span className="text-red-500">*</span></label>
+                  <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className={inputCls} />
                 </div>
+
                 <div>
-                  <Label>Phone Number *</Label>
-                  <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+880" required />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
+                  <div className="flex border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-red-500 focus-within:border-red-500 overflow-hidden transition-colors">
+                    <span className="bg-gray-100 px-3 py-2 text-gray-500 text-sm border-r border-gray-300 flex items-center">+880</span>
+                    <input
+                      type="tel"
+                      value={form.phone}
+                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                      required
+                      className="w-full px-3 py-2 focus:outline-none border-none"
+                    />
+                  </div>
                 </div>
+
                 <div className="sm:col-span-2">
-                  <Label>Address *</Label>
-                  <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="House/Road/Area details" required />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Address <span className="text-red-500">*</span></label>
+                  <input type="text" placeholder="House/Road/Area details" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} required className={inputCls} />
                 </div>
+
                 <div>
-                  <Label>Area *</Label>
-                  <Input value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} required />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Area <span className="text-red-500">*</span></label>
+                  <input type="text" value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} required className={inputCls} />
                 </div>
+
                 <div>
-                  <Label>District *</Label>
-                  <Input value={form.district} onChange={(e) => setForm({ ...form, district: e.target.value })} placeholder="e.g., Dhaka" required />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">District <span className="text-red-500">*</span></label>
+                  <input type="text" placeholder="e.g., Dhaka" value={form.district} onChange={(e) => setForm({ ...form, district: e.target.value })} required className={inputCls} />
                 </div>
+
                 <div>
-                  <Label>Division</Label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Division</label>
                   <select
-                    className="w-full h-10 px-3 border rounded-md text-sm"
                     value={form.division}
                     onChange={(e) => setForm({ ...form, division: e.target.value })}
+                    className="w-full px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
                   >
                     {DIVISIONS.map((d) => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
-                <div>
-                  <Label>Delivery Note (optional)</Label>
-                  <Textarea value={deliveryNote} onChange={(e) => setDeliveryNote(e.target.value)} placeholder="Any special instructions..." />
+
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Note (optional)</label>
+                  <textarea
+                    rows={2}
+                    value={deliveryNote}
+                    onChange={(e) => setDeliveryNote(e.target.value)}
+                    placeholder="Any special instructions..."
+                    className={`${inputCls} resize-none`}
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Payment Method */}
-            <div className="border rounded-lg p-6">
-              <h2 className="text-lg font-semibold mb-4">Payment Method</h2>
-              <div className="space-y-3">
+            {/* Payment */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sm:p-8">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Payment Method</h2>
+              <div className="space-y-4">
                 {[
                   { value: 'COD', label: 'Cash on Delivery', desc: 'Pay when you receive your order' },
                   { value: 'SSLCommerz', label: 'Online Payment (SSLCommerz)', desc: 'Visa, Mastercard, bKash, Nagad, and more' },
-                ].map((method) => (
-                  <label
-                    key={method.value}
-                    className={`flex items-start gap-3 p-4 rounded-lg border cursor-pointer ${
-                      paymentMethod === method.value ? 'border-brand-red bg-brand-red-light' : 'hover:border-gray-300'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="payment"
-                      value={method.value}
-                      checked={paymentMethod === method.value}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="mt-1"
-                    />
-                    <div>
-                      <p className="font-medium">{method.label}</p>
-                      <p className="text-sm text-gray-500">{method.desc}</p>
-                    </div>
-                  </label>
-                ))}
+                ].map((m) => {
+                  const active = paymentMethod === m.value;
+                  return (
+                    <label
+                      key={m.value}
+                      className={`relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm transition-colors ${
+                        active ? 'border-red-500 ring-1 ring-red-500 bg-red-50/30' : 'border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="payment"
+                        value={m.value}
+                        checked={active}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                        className="sr-only"
+                      />
+                      <span className={`mt-1 flex h-4 w-4 items-center justify-center rounded-full border ${active ? 'border-red-500 bg-red-600' : 'border-gray-300 bg-white'}`}>
+                        {active && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                      </span>
+                      <span className="ml-4 flex flex-col">
+                        <span className="block text-sm font-semibold text-gray-900">{m.label}</span>
+                        <span className="block text-sm text-gray-500">{m.desc}</span>
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
           </div>
 
-          {/* Order Summary */}
-          <div className="border rounded-lg p-6 h-fit sticky top-24">
-            <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
-            <div className="space-y-3 mb-4">
-              {items.map((item) => (
-                <div key={item.product._id} className="flex justify-between text-sm">
-                  <span className="truncate mr-2">
-                    {item.product.name} x{item.quantity}
+          {/* Right: Summary */}
+          <div className="w-full lg:w-1/3">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sm:p-8 sticky top-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Order Summary</h2>
+
+              <div className="space-y-3 mb-6 border-b border-gray-100 pb-4">
+                {items.map((item) => (
+                  <div key={item.product._id} className="flex justify-between items-start text-sm text-gray-700">
+                    <span className="pr-4">{item.product.name} x{item.quantity}</span>
+                    <span className="font-medium whitespace-nowrap">{formatPrice(item.price * item.quantity)}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-3 text-sm text-gray-600 mb-6 border-b border-gray-100 pb-4">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span className="font-medium text-gray-900">{formatPrice(totalAmount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Shipping {form.district.trim() ? `(${isDhaka ? 'Inside Dhaka' : 'Outside Dhaka'})` : ''}</span>
+                  <span className="font-medium text-gray-900">
+                    {form.district.trim() ? formatPrice(shippingCost) : '—'}
                   </span>
-                  <span className="flex-shrink-0">{formatPrice(item.price * item.quantity)}</span>
                 </div>
-              ))}
-            </div>
-            <Separator className="mb-4" />
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>{formatPrice(totalAmount)}</span>
+                {couponDiscount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Coupon Discount</span>
+                    <span>-{formatPrice(couponDiscount)}</span>
+                  </div>
+                )}
               </div>
-              <div className="flex justify-between">
-                <span>Shipping ({isDhaka ? 'Inside Dhaka' : 'Outside Dhaka'})</span>
-                <span>{shippingCost === 0 ? 'Free' : formatPrice(shippingCost)}</span>
+
+              <div className="flex justify-between items-center mb-8">
+                <span className="text-lg font-bold text-gray-900">Total</span>
+                <span className="text-2xl font-bold text-red-600">{formatPrice(grandTotal)}</span>
               </div>
-              {couponDiscount > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Coupon Discount</span>
-                  <span>-{formatPrice(couponDiscount)}</span>
-                </div>
-              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition duration-200 shadow-md disabled:opacity-60"
+              >
+                {loading ? 'Placing Order...' : 'Place Order'}
+              </button>
             </div>
-            <Separator className="my-4" />
-            <div className="flex justify-between font-bold text-lg">
-              <span>Total</span>
-              <span className="text-brand-red">{formatPrice(grandTotal)}</span>
-            </div>
-            <Button
-              type="submit"
-              className="w-full mt-6 bg-brand-red hover:bg-brand-red-dark"
-              size="lg"
-              disabled={loading}
-            >
-              {loading ? 'Placing Order...' : 'Place Order'}
-            </Button>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
