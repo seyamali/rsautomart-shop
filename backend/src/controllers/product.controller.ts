@@ -329,11 +329,15 @@ export const updateStock = async (req: Request, res: Response): Promise<void> =>
 };
 export const getAdminProducts = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { search, page = '1', limit = '20' } = req.query;
+    const { search, category, page = '1', limit = '20' } = req.query;
     const filter: any = {};
 
     if (search) {
       filter.$text = { $search: search as string };
+    }
+
+    if (category) {
+      filter.category = category;
     }
 
     const pageNum = parseInt(page as string);

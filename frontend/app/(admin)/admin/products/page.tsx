@@ -17,6 +17,8 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, pages: 0 });
 
@@ -24,14 +26,20 @@ export default function AdminProductsPage() {
     setLoading(true);
     const params = new URLSearchParams({ page: String(page), limit: '20' });
     if (search) params.set('search', search);
+    if (selectedCategory) params.set('category', selectedCategory);
     api.get(`/products/admin?${params}`)
       .then(({ data }) => { setProducts(data.products); setPagination(data.pagination); })
-
       .catch(() => {})
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchProducts(); }, [page]);
+  useEffect(() => {
+    api.get('/categories')
+      .then(({ data }) => setCategories(data.categories))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => { fetchProducts(); }, [page, selectedCategory]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,10 +69,34 @@ export default function AdminProductsPage() {
           </Button>
         </div>
 
-        <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
-          <Input placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-white" />
-          <Button type="submit" variant="outline" className="bg-white"><Search size={16} /></Button>
-        </form>
+        <div className="flex flex-wrap gap-4 items-end">
+          <form onSubmit={handleSearch} className="flex gap-2 max-w-md flex-1">
+            <Input 
+              placeholder="Search products..." 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
+              className="bg-white" 
+            />
+            <Button type="submit" variant="outline" className="bg-white">
+              <Search size={16} />
+            </Button>
+          </form>
+
+          <div className="w-full sm:w-48">
+            <select
+              value={selectedCategory}
+              onChange={(e) => { setSelectedCategory(e.target.value); setPage(1); }}
+              className="w-full h-10 px-3 bg-white border border-gray-200 rounded-md text-sm outline-none focus:ring-2 focus:ring-brand-red/20 focus:border-brand-red transition-all"
+            >
+              <option value="">All Categories</option>
+              {categories.map((cat) => (
+                <option key={cat._id} value={cat._id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
       <div className="flex-1 px-6 py-6">
